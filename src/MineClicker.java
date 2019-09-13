@@ -13,7 +13,6 @@ import javafx.util.Duration;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.sql.SQLOutput;
 
 public class MineClicker extends Application {
 
@@ -24,7 +23,8 @@ public class MineClicker extends Application {
     static int bps;
     static ImageView[] images = new ImageView[5];
 
-    static int stonePickQt = 0;
+    static Upgrade stonePick = new Upgrade(20,1);
+
     static int clickStrength = 1;
 
     static Timeline bpsTimeline;
@@ -102,27 +102,36 @@ public class MineClicker extends Application {
         Button buyGoldPickaxe = new Button("Buy Gold Pickaxe",images[3]);
         Button buyDiamondPickaxe = new Button("Buy Diamond Pickaxe",images[4]);
 
-        Label stoneQt = new Label("You Have " + stonePickQt + ".");
-        Label ironQt = new Label("You Have " + stonePickQt + ".");
-        Label goldQt = new Label("You Have " + stonePickQt + ".");
-        Label diamondQt = new Label("You Have " + stonePickQt + ".");
+        Label stoneQt = new Label("Cost : " + stonePick.getCost() + "You Have " + stonePick.getQt() + ".");
+        Label ironQt = new Label("You Have " + stonePick.getQt() + ".");
+        Label goldQt = new Label("You Have " + stonePick.getQt() + ".");
+        Label diamondQt = new Label("You Have " + stonePick.getQt() + ".");
 
         buyStonePickaxe.setTranslateY(0);
         buyIronPickaxe.setTranslateY(25);
         buyGoldPickaxe.setTranslateY(50);
         buyDiamondPickaxe.setTranslateY(75);
 
+
+        //listeners pour les upgrades
         buyStonePickaxe.setOnAction((event) -> {
 
-            stonePickQt++;
-            bps++;
-            stoneQt.setText("You Have " + stonePickQt + ".");
-            updateCountSpeed();
+            if (blocksMined >= stonePick.getCost()) {
+
+
+                blocksMined -= stonePick.getCost();
+                blocksMinedS =  "" + blocksMined;
+                stonePick.setQt(stonePick.getQt()+ 1);
+                bps++;
+                stoneQt.setText("Cost : " + stonePick.getCost() + "You Have " + stonePick.getQt() + ".");
+                updateCountSpeed();
+
+            }
 
         });
 
 
-        upgradeScene = new Scene(new Group(buyStonePickaxe,buyIronPickaxe,buyGoldPickaxe,buyDiamondPickaxe));
+        upgradeScene = new Scene(new Group(buyStonePickaxe,buyIronPickaxe,buyGoldPickaxe,buyDiamondPickaxe,stoneQt));
 
 
     }
@@ -158,7 +167,6 @@ public class MineClicker extends Application {
     void updateCountSpeed () {
 
         double bpsTime = (1000.0*(1.0/bps));
-        System.out.println(bpsTime);
         bpsTimeline.stop();
         bpsTimeline = new Timeline(new KeyFrame(Duration.millis(bpsTime),t -> addBlock()));
         bpsTimeline.setCycleCount(Animation.INDEFINITE);
