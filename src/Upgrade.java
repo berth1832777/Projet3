@@ -30,7 +30,7 @@ public class Upgrade {
 
     public void calculateCost () {
 
-        cost = (qt+1) * 20;
+        cost = (qt+1) * baseCost;
 
     }
 

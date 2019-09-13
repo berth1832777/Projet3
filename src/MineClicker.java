@@ -8,26 +8,34 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class MineClicker extends Application {
 
     public static Scene mainScene;
     public static Scene upgradeScene;
     static int blocksMined;
-    static String blocksMinedS;
+    static String blocksMinedS = "Blocks mined: 0";
     static int bps;
+    static String bpsS = "0";
+    static Label bpsLabel; // je dois metttre ce label la ici parce que j'ai besoin de l'accéder en dehors de la méthode SetupMainWindow.
     static ImageView[] images = new ImageView[5];
 
-    static Upgrade stonePick = new Upgrade(20,1);
+    static Upgrade[] upgrades = {new Upgrade(20,1), new Upgrade(500,5),new Upgrade(10000,20), new Upgrade(100000,100)};
+    //stone - iron - gold - diamond
+
 
     static int clickStrength = 1;
 
-    static Timeline bpsTimeline;
+    static Timeline bpsTimeline = new Timeline();
 
     public static void main(String[] args) { launch(args);}
 
@@ -46,14 +54,19 @@ public class MineClicker extends Application {
 
         primaryStage.setTitle("Minecraft Clicker : Also play Terraria!");
         primaryStage.setResizable(false);
-
-        primaryStage.setWidth(400);
-        primaryStage.setHeight(400);
+        try{ primaryStage.getIcons().add(new Image(new FileInputStream("Images/dirtIcon.png"))); }
+        catch (FileNotFoundException ex) { System.out.println("Dirt icon not found!"); }
 
         primaryStage.show();
 
+
+
         //stage avec les upgrades
         Stage upgradeStage = new Stage();
+        upgradeStage.setTitle("Villageois mineur");
+        upgradeStage.setResizable(false);
+        try{ upgradeStage.getIcons().add(new Image(new FileInputStream("Images/villagerIcon.png"))); }
+        catch (FileNotFoundException ex) { System.out.println("Villager icon not found!"); }
 
         upgradeStage.setScene(upgradeScene);
 
@@ -64,48 +77,41 @@ public class MineClicker extends Application {
     void SetupMainWindow() {
 
         Button click = new Button("Mine!",images[0]);
-        Label blocksMined = new Label("Blocks mined : ");
-        Label scoreDisplay = new Label("0");
+        Label scoreDisplay = new Label("Blocks mined : 0");
+        bpsLabel = new Label("Blocks per second : " + bpsS);
 
         click.setScaleX(8);
         click.setScaleY(8);
-        click.setTranslateX(100);
+        click.setTranslateX(240);
         click.setTranslateY(150);
 
-        click.setOnAction( (event) ->Click());
+        click.setOnAction( (event) ->addBlocks(clickStrength));
 
         //timeline qui update le texte scoreDisplay
         Timeline textTimeline = new Timeline(new KeyFrame(Duration.millis(10),t -> scoreDisplay.setText(blocksMinedS)));
         textTimeline.setCycleCount(Animation.INDEFINITE);
         textTimeline.play();
 
-        //timeline qui update les clics par seconde des upgrades
-        bpsTimeline = new Timeline(new KeyFrame(Duration.millis(0),t -> addBlock()));
-        bpsTimeline.setCycleCount(Animation.INDEFINITE);
-        bpsTimeline.play();
+        //start la timeline qui update le nombre de blocs
+        updateCountSpeed();
 
-        blocksMined.setTranslateX(100);
-        blocksMined.setTranslateY(50);
-
-        scoreDisplay.setTranslateX(180);
-        scoreDisplay.setTranslateY(50);
+        scoreDisplay.setTranslateX(100);
+        //scoreDisplay.setTranslateY(15);
+        scoreDisplay.setFont(new Font(40));
 
 
-        mainScene = new Scene(new Group(click,blocksMined,scoreDisplay));
+
+        mainScene = new Scene(new Group(click,scoreDisplay,bpsLabel));
 
     }
 
     void SetupUpgradeWindow () {
 
+        //buttons
         Button buyStonePickaxe = new Button("Buy Stone Pickaxe", images[1]);
         Button buyIronPickaxe = new Button("Buy Iron Pickaxe",images[2]);
         Button buyGoldPickaxe = new Button("Buy Gold Pickaxe",images[3]);
         Button buyDiamondPickaxe = new Button("Buy Diamond Pickaxe",images[4]);
-
-        Label stoneQt = new Label("Cost : " + stonePick.getCost() + "You Have " + stonePick.getQt() + ".");
-        Label ironQt = new Label("You Have " + stonePick.getQt() + ".");
-        Label goldQt = new Label("You Have " + stonePick.getQt() + ".");
-        Label diamondQt = new Label("You Have " + stonePick.getQt() + ".");
 
         buyStonePickaxe.setTranslateY(0);
         buyIronPickaxe.setTranslateY(25);
@@ -113,62 +119,87 @@ public class MineClicker extends Application {
         buyDiamondPickaxe.setTranslateY(75);
 
 
+        //labels
+        Label stoneQt = new Label("Cost : " + upgrades[0].getCost() + "You Have " + upgrades[0].getQt() + ".");
+        Label ironQt = new Label("Cost : " + upgrades[1].getCost() + "You Have " + upgrades[1].getQt() + ".");
+        Label goldQt = new Label("Cost : " + upgrades[2].getCost() + "You Have " + upgrades[2].getQt() + ".");
+        Label diamondQt = new Label("Cost : " + upgrades[3].getCost() + "You Have " + upgrades[3].getQt() + ".");
+
+        stoneQt.setTranslateX(160);
+        stoneQt.setTranslateY(5);
+        ironQt.setTranslateX(160);
+        ironQt.setTranslateY(30);
+        goldQt.setTranslateX(160);
+        goldQt.setTranslateY(55);
+        diamondQt.setTranslateX(160);
+        diamondQt.setTranslateY(80);
+
+
         //listeners pour les upgrades
-        buyStonePickaxe.setOnAction((event) -> {
+        buyStonePickaxe.setOnAction((event) -> buyUpgrade(upgrades[0],stoneQt));
+        buyIronPickaxe.setOnAction((event) -> buyUpgrade(upgrades[1],ironQt));
+        buyGoldPickaxe.setOnAction((event) -> buyUpgrade(upgrades[2],goldQt));
+        buyDiamondPickaxe.setOnAction((event) -> buyUpgrade(upgrades[3],diamondQt));
 
-            if (blocksMined >= stonePick.getCost()) {
-
-
-                blocksMined -= stonePick.getCost();
-                blocksMinedS =  "" + blocksMined;
-                stonePick.setQt(stonePick.getQt()+ 1);
-                bps++;
-                stoneQt.setText("Cost : " + stonePick.getCost() + "You Have " + stonePick.getQt() + ".");
-                updateCountSpeed();
-
-            }
-
-        });
-
-
-        upgradeScene = new Scene(new Group(buyStonePickaxe,buyIronPickaxe,buyGoldPickaxe,buyDiamondPickaxe,stoneQt));
+        //création de la scene
+        upgradeScene = new Scene(new Group(buyStonePickaxe,buyIronPickaxe,buyGoldPickaxe,buyDiamondPickaxe,stoneQt,ironQt,goldQt,diamondQt));
 
 
     }
 
+    //méthode pour aller chercher les images dans le dossier
     void InitGraphics () {
 
-        for (int i = 0; i < 5; i++){
+        for (int i = 0; i < upgrades.length; i++){
 
             try {
                 images[i] = new ImageView(new Image(new FileInputStream("Images/" + i + ".png")));
             } catch (FileNotFoundException ex) {
-                System.out.println( i + " PICK NOT FOUND");
+                System.out.println( i + " IMAGE NOT FOUND");
             }
 
         }
 
     }
 
-    public static void Click () {
+    void buyUpgrade (Upgrade upgrade, Label upgradeLabel) {
 
-        blocksMined += clickStrength;
-        blocksMinedS =  "" + blocksMined;
+        if (blocksMined >= upgrade.getCost()) {
+
+
+            blocksMined -= upgrade.getCost();
+            blocksMinedS =  "Blocks mined: " + blocksMined;
+            upgrade.setQt(upgrade.getQt()+ 1);
+            bps++;
+            upgradeLabel.setText("Cost : " + upgrade.getCost() + "You Have " + upgrade.getQt() + ".");
+            updateCountSpeed();
+            updateBps();
+
+        }
 
     }
 
-    void addBlock() {
+    void addBlocks(int amount) {
 
-        blocksMined++;
-        blocksMinedS = "" + blocksMined;
+        blocksMined += amount;
+        blocksMinedS = "Blocks mined: " + blocksMined;
+
+    }
+
+    void updateBps () {
+
+        bpsS = "Blocks per second: " + bps;
+        bpsLabel.setText(bpsS);
 
     }
 
     void updateCountSpeed () {
 
-        double bpsTime = (1000.0*(1.0/bps));
-        bpsTimeline.stop();
-        bpsTimeline = new Timeline(new KeyFrame(Duration.millis(bpsTime),t -> addBlock()));
+        double bpsTime = (1.0/bps);
+
+        if (bpsTimeline.getStatus().equals(Animation.Status.RUNNING)) {bpsTimeline.stop();}
+
+        bpsTimeline = new Timeline(new KeyFrame(Duration.seconds(bpsTime),t -> addBlocks(1)));
         bpsTimeline.setCycleCount(Animation.INDEFINITE);
         bpsTimeline.play();
 
