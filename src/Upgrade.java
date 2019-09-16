@@ -1,12 +1,14 @@
 public class Upgrade {
 
-    private int qt;
-    private int baseCost;
-    private int cost;
-    private int strength;
+    protected String name;
+    protected int qt;
+    protected int baseCost;
+    protected int cost;
+    protected int strength;
 
-    public Upgrade(int baseCost, int strength) {
+    public Upgrade( String name,int baseCost, int strength) {
 
+        this.name = name;
         this.baseCost = baseCost;
         this.strength = strength;
         this.cost = baseCost;
@@ -30,8 +32,16 @@ public class Upgrade {
 
     public void calculateCost () {
 
-        cost = (qt+1) * baseCost;
+        cost = (int)(baseCost*Math.pow(1.18,qt));
 
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public int getStrength() {

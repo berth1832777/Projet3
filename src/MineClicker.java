@@ -14,6 +14,7 @@ import javafx.util.Duration;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,18 +23,21 @@ public class MineClicker extends Application {
 
     public static Scene mainScene;
     public static Scene upgradeScene;
-    static int blocksMined;
-    static String blocksMinedS = "Blocks mined: 0";
+    public static Scene enchantScene;
+    static double blocksMined;
     static int bps;
-    static String bpsS = "0";
     static Label bpsLabel; // je dois metttre ce label la ici parce que j'ai besoin de l'accéder en dehors de la méthode SetupMainWindow.
     static ImageView[] images = new ImageView[5];
 
-    static Upgrade[] upgrades = {new Upgrade(20,1), new Upgrade(500,5),new Upgrade(10000,20), new Upgrade(100000,100)};
-    //stone - iron - gold - diamond
+    static Upgrade[] upgrades = {
+            new Upgrade("Stone Pickaxe",20,1),
+            new Upgrade("Iron Pickaxe",500,5),
+            new Upgrade("Gold Pickaxe",10000,20),
+            new Upgrade("Diamond Pickaxe",100000,100)};
 
 
-    static int clickStrength = 1;
+    static int clickStrength = 1000;
+    static Upgrade enchant = new Enchant();
 
     static Timeline bpsTimeline = new Timeline();
 
@@ -47,6 +51,7 @@ public class MineClicker extends Application {
 
         SetupMainWindow();
         SetupUpgradeWindow();
+        SetupEnchantWindow();
 
 
         //stage avec le bouton a cliquer
@@ -72,13 +77,26 @@ public class MineClicker extends Application {
 
         upgradeStage.show();
 
+
+        //stage avec l'enchantement
+        Stage enchantStage = new Stage();
+        enchantStage.setTitle("Villageois enchanteur");
+        enchantStage.setResizable(true);
+        try{ enchantStage.getIcons().add(new Image(new FileInputStream("Images/villagerIcon.png"))); }
+        catch (FileNotFoundException ex) { System.out.println("Villager icon not found!"); }
+
+        enchantStage.setScene(enchantScene);
+
+        enchantStage.show();
+
+
     }
 
     void SetupMainWindow() {
 
         Button click = new Button("Mine!",images[0]);
         Label scoreDisplay = new Label("Blocks mined : 0");
-        bpsLabel = new Label("Blocks per second : " + bpsS);
+        bpsLabel = new Label("Blocks per second : " + ParseNumber(bps));
 
         click.setScaleX(8);
         click.setScaleY(8);
@@ -88,12 +106,14 @@ public class MineClicker extends Application {
         click.setOnAction( (event) ->addBlocks(clickStrength));
 
         //timeline qui update le texte scoreDisplay
-        Timeline textTimeline = new Timeline(new KeyFrame(Duration.millis(10),t -> scoreDisplay.setText(blocksMinedS)));
+        Timeline textTimeline = new Timeline(new KeyFrame(Duration.millis(10),t -> scoreDisplay.setText("Blocks mined: " + ParseNumber(blocksMined))));
         textTimeline.setCycleCount(Animation.INDEFINITE);
         textTimeline.play();
 
         //start la timeline qui update le nombre de blocs
-        updateCountSpeed();
+        bpsTimeline = new Timeline(new KeyFrame(Duration.millis(10),t -> addBlocks(getBpsAmount())));
+        bpsTimeline.setCycleCount(Animation.INDEFINITE);
+        bpsTimeline.play();
 
         scoreDisplay.setTranslateX(100);
         //scoreDisplay.setTranslateY(15);
@@ -108,10 +128,10 @@ public class MineClicker extends Application {
     void SetupUpgradeWindow () {
 
         //buttons
-        Button buyStonePickaxe = new Button("Buy Stone Pickaxe", images[1]);
-        Button buyIronPickaxe = new Button("Buy Iron Pickaxe",images[2]);
-        Button buyGoldPickaxe = new Button("Buy Gold Pickaxe",images[3]);
-        Button buyDiamondPickaxe = new Button("Buy Diamond Pickaxe",images[4]);
+        Button buyStonePickaxe = new Button("Buy Stone Pickaxe (+ " + upgrades[0].getStrength() + " bps)", images[1]);
+        Button buyIronPickaxe = new Button("Buy Iron Pickaxe(+ " + upgrades[1].getStrength() + " bps)",images[2]);
+        Button buyGoldPickaxe = new Button("Buy Gold Pickaxe(+" + upgrades[2].getStrength() + " bps)",images[3]);
+        Button buyDiamondPickaxe = new Button("Buy Diamond Pickaxe(+ " + upgrades[3].getStrength() + " bps)",images[4]);
 
         buyStonePickaxe.setTranslateY(0);
         buyIronPickaxe.setTranslateY(25);
@@ -120,30 +140,73 @@ public class MineClicker extends Application {
 
 
         //labels
-        Label stoneQt = new Label("Cost : " + upgrades[0].getCost() + "You Have " + upgrades[0].getQt() + ".");
-        Label ironQt = new Label("Cost : " + upgrades[1].getCost() + "You Have " + upgrades[1].getQt() + ".");
-        Label goldQt = new Label("Cost : " + upgrades[2].getCost() + "You Have " + upgrades[2].getQt() + ".");
-        Label diamondQt = new Label("Cost : " + upgrades[3].getCost() + "You Have " + upgrades[3].getQt() + ".");
+        Label stoneQt = new Label("Cost : " + ParseNumber(upgrades[0].getCost()) + ". You Have " + ParseNumber(upgrades[0].getQt()) + ".");
+        Label ironQt = new Label("Cost : " + ParseNumber(upgrades[1].getCost()) + ". You Have " + ParseNumber(upgrades[1].getQt()) + ".");
+        Label goldQt = new Label("Cost : " + ParseNumber(upgrades[2].getCost()) + ". You Have " + ParseNumber(upgrades[2].getQt()) + ".");
+        Label diamondQt = new Label("Cost : " + ParseNumber(upgrades[3].getCost()) + ". You Have " + ParseNumber(upgrades[3].getQt()) + ".");
 
-        stoneQt.setTranslateX(160);
+        stoneQt.setTranslateX(200);
         stoneQt.setTranslateY(5);
-        ironQt.setTranslateX(160);
+        ironQt.setTranslateX(200);
         ironQt.setTranslateY(30);
-        goldQt.setTranslateX(160);
+        goldQt.setTranslateX(200);
         goldQt.setTranslateY(55);
-        diamondQt.setTranslateX(160);
+        diamondQt.setTranslateX(200);
         diamondQt.setTranslateY(80);
 
 
         //listeners pour les upgrades
-        buyStonePickaxe.setOnAction((event) -> buyUpgrade(upgrades[0],stoneQt));
-        buyIronPickaxe.setOnAction((event) -> buyUpgrade(upgrades[1],ironQt));
-        buyGoldPickaxe.setOnAction((event) -> buyUpgrade(upgrades[2],goldQt));
-        buyDiamondPickaxe.setOnAction((event) -> buyUpgrade(upgrades[3],diamondQt));
+        buyStonePickaxe.setOnAction((event) -> buyUpgrade(upgrades[0],stoneQt,buyStonePickaxe));
+        buyIronPickaxe.setOnAction((event) -> buyUpgrade(upgrades[1],ironQt,buyIronPickaxe));
+        buyGoldPickaxe.setOnAction((event) -> buyUpgrade(upgrades[2],goldQt,buyGoldPickaxe));
+        buyDiamondPickaxe.setOnAction((event) -> buyUpgrade(upgrades[3],diamondQt,buyDiamondPickaxe));
 
         //création de la scene
         upgradeScene = new Scene(new Group(buyStonePickaxe,buyIronPickaxe,buyGoldPickaxe,buyDiamondPickaxe,stoneQt,ironQt,goldQt,diamondQt));
 
+
+    }
+
+    void SetupEnchantWindow () {
+
+        Button enchantPick = new Button("Enchant!");
+        Label enchantCost = new Label("You can enchant your pickaxe to increase the power of your clicks. Your current power is " + enchant.getStrength() + "Cost : " + enchant.getCost() + ".");
+
+        enchantPick.setTranslateX(50);
+        enchantPick.setTranslateY(200);
+        //TODO FINIR LES TRANSLATE ET TERMINER LA NOUVELLE FENETRE!!!!
+
+
+        enchantPick.setOnAction((event) -> upgradeClick(enchantCost, enchantPick));
+
+
+        enchantScene = new Scene((new Group(enchantPick,enchantCost)));
+
+    }
+
+    void upgradeClick (Label enchantLabel, Button enchantButton) {
+
+        if (blocksMined >= enchant.getCost()) {
+
+
+            blocksMined -= enchant.getCost();
+            enchant.setQt(enchant.getQt()+ 1);
+
+            bps += enchant.getStrength();
+
+            //bonus quand on obtient une dizaine de chaque upgrade, la force des upgrades double
+            if (enchant.getQt()%10 == 0) {
+
+                enchant.setStrength(enchant.getStrength() * 2);
+
+            }
+
+
+            enchantLabel.setText("enchantLabel");
+            enchantButton.setText("enchantbutton");
+            updateBps();
+
+        }
 
     }
 
@@ -162,46 +225,56 @@ public class MineClicker extends Application {
 
     }
 
-    void buyUpgrade (Upgrade upgrade, Label upgradeLabel) {
+    void buyUpgrade (Upgrade upgrade, Label upgradeLabel, Button button) {
 
         if (blocksMined >= upgrade.getCost()) {
 
 
             blocksMined -= upgrade.getCost();
-            blocksMinedS =  "Blocks mined: " + blocksMined;
             upgrade.setQt(upgrade.getQt()+ 1);
-            bps++;
-            upgradeLabel.setText("Cost : " + upgrade.getCost() + "You Have " + upgrade.getQt() + ".");
-            updateCountSpeed();
+
+            bps += upgrade.getStrength();
+
+            //bonus quand on obtient une dizaine de chaque upgrade, la force des upgrades double
+            if (upgrade.getQt()%10 == 0) {
+
+                upgrade.setStrength(upgrade.getStrength() * 2);
+
+            }
+
+
+            upgradeLabel.setText("Cost : " + ParseNumber(upgrade.getCost()) + ". You Have " + ParseNumber(upgrade.getQt()) + ".");
+            button.setText("Buy " + upgrade.getName() + "(+ " + ParseNumber(upgrade.getStrength()) + " bps)");
             updateBps();
 
         }
 
     }
 
-    void addBlocks(int amount) {
+    void addBlocks(double amount) {
 
         blocksMined += amount;
-        blocksMinedS = "Blocks mined: " + blocksMined;
 
     }
 
     void updateBps () {
 
-        bpsS = "Blocks per second: " + bps;
-        bpsLabel.setText(bpsS);
+        bpsLabel.setText("Blocks per second: " + ParseNumber(bps));
 
     }
 
-    void updateCountSpeed () {
+    String ParseNumber (double value) {
 
-        double bpsTime = (1.0/bps);
+        int valueInt = (int)value;
+        DecimalFormat df = new DecimalFormat("#,###");
 
-        if (bpsTimeline.getStatus().equals(Animation.Status.RUNNING)) {bpsTimeline.stop();}
+        return df.format(valueInt);
 
-        bpsTimeline = new Timeline(new KeyFrame(Duration.seconds(bpsTime),t -> addBlocks(1)));
-        bpsTimeline.setCycleCount(Animation.INDEFINITE);
-        bpsTimeline.play();
+    }
+
+    double getBpsAmount () {
+
+        return (bps/100.0);
 
     }
 
