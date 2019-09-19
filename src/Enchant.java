@@ -2,7 +2,7 @@ public class Enchant extends Upgrade {
 
     public Enchant() {
 
-        super("Enchant",1000,1);
+        super("Enchant",100,1);
 
     }
 

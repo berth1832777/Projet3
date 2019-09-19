@@ -19,14 +19,18 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/*
 
-//TEST PUISHHHHH!!!
+Thomas Bergeron
+Projet 3: Clicker
+
+ */
 public class MineClicker extends Application {
 
     public static Scene mainScene;
     public static Scene upgradeScene;
     public static Scene enchantScene;
-    static double blocksMined;
+    static double blocksMined = 10000000;
     static int bps;
     static Label bpsLabel; // je dois metttre ce label la ici parce que j'ai besoin de l'accéder en dehors de la méthode SetupMainWindow.
     static ImageView[] images = new ImageView[5];
@@ -34,11 +38,12 @@ public class MineClicker extends Application {
     static Upgrade[] upgrades = {
             new Upgrade("Stone Pickaxe",20,1),
             new Upgrade("Iron Pickaxe",500,5),
-            new Upgrade("Gold Pickaxe",10000,20),
-            new Upgrade("Diamond Pickaxe",100000,100)};
+            new Upgrade("Gold Pickaxe",10000,100),
+            new Upgrade("Diamond Pickaxe",100000,1000)
+    };
 
 
-    static int clickStrength = 1000;
+    static int clickStrength = 1;
     static Upgrade enchant = new Enchant();
 
     static Timeline bpsTimeline = new Timeline();
@@ -70,8 +75,8 @@ public class MineClicker extends Application {
 
         //stage avec les upgrades
         Stage upgradeStage = new Stage();
-        upgradeStage.setTitle("Villageois mineur");
-        upgradeStage.setResizable(false);
+        upgradeStage.setTitle("Miner");
+        upgradeStage.setResizable(true);
         try{ upgradeStage.getIcons().add(new Image(new FileInputStream("Images/villagerIcon.png"))); }
         catch (FileNotFoundException ex) { System.out.println("Villager icon not found!"); }
 
@@ -82,8 +87,8 @@ public class MineClicker extends Application {
 
         //stage avec l'enchantement
         Stage enchantStage = new Stage();
-        enchantStage.setTitle("Villageois enchanteur");
-        enchantStage.setResizable(true);
+        enchantStage.setTitle("Enchanter");
+        enchantStage.setResizable(false);
         try{ enchantStage.getIcons().add(new Image(new FileInputStream("Images/villagerIcon.png"))); }
         catch (FileNotFoundException ex) { System.out.println("Villager icon not found!"); }
 
@@ -96,30 +101,48 @@ public class MineClicker extends Application {
 
     void SetupMainWindow() {
 
-        Button click = new Button("Mine!",images[0]);
-        Label scoreDisplay = new Label("Blocks mined : 0");
+        Button click = new Button();
+        try {click = new Button("Mine!",new ImageView(new Image(new FileInputStream("Images/stone.png"))));} catch (FileNotFoundException ex) {
+            System.out.println("stone image not found!");
+        }
+        Label scoreDisplay = new Label("Blocks mined:\n0");
         bpsLabel = new Label("Blocks per second : " + ParseNumber(bps));
 
-        click.setScaleX(8);
-        click.setScaleY(8);
-        click.setTranslateX(240);
-        click.setTranslateY(150);
+        click.setScaleX(1);
+        click.setScaleY(1);
+        click.setTranslateX(10);
+        click.setTranslateY(100);
 
         click.setOnAction( (event) ->addBlocks(clickStrength));
 
+
         //timeline qui update le texte scoreDisplay
-        Timeline textTimeline = new Timeline(new KeyFrame(Duration.millis(10),t -> scoreDisplay.setText("Blocks mined: " + ParseNumber(blocksMined))));
+        Timeline textTimeline = new Timeline(new KeyFrame(Duration.millis(10),t -> {
+
+
+            scoreDisplay.setText("Blocks mined:\n" + ParseNumber(blocksMined));
+
+            //Quand la variable blocksMined se wrap et devient négative, on gagne la partie et le jeu se ferme.
+            if (blocksMined < 0) {
+
+                System.out.println("Vous avez miné tout le monde de Minecraft! Bravo! Maintenant arrêtez de jouer!");
+                System.exit(0);
+
+            }
+
+        }));
         textTimeline.setCycleCount(Animation.INDEFINITE);
         textTimeline.play();
 
-        //start la timeline qui update le nombre de blocs
-        bpsTimeline = new Timeline(new KeyFrame(Duration.millis(10),t -> addBlocks(getBpsAmount())));
+
+        //timeline qui update le nombre de blocs
+        bpsTimeline = new Timeline(new KeyFrame(Duration.millis(10),t -> addBlocks((bps/100.0))));
         bpsTimeline.setCycleCount(Animation.INDEFINITE);
         bpsTimeline.play();
 
         scoreDisplay.setTranslateX(100);
-        //scoreDisplay.setTranslateY(15);
-        scoreDisplay.setFont(new Font(40));
+        scoreDisplay.setTranslateY(10);
+        scoreDisplay.setFont(new Font(30));
 
 
 
@@ -133,7 +156,7 @@ public class MineClicker extends Application {
         Button buyStonePickaxe = new Button("Buy Stone Pickaxe (+ " + upgrades[0].getStrength() + " bps)", images[1]);
         Button buyIronPickaxe = new Button("Buy Iron Pickaxe(+ " + upgrades[1].getStrength() + " bps)",images[2]);
         Button buyGoldPickaxe = new Button("Buy Gold Pickaxe(+" + upgrades[2].getStrength() + " bps)",images[3]);
-        Button buyDiamondPickaxe = new Button("Buy Diamond Pickaxe(+ " + upgrades[3].getStrength() + " bps)",images[4]);
+        Button buyDiamondPickaxe = new Button("Buy Diamond Pickaxe(+ " + ParseNumber(upgrades[3].getStrength()) + " bps)",images[4]); //J'ai mis un ParseNumber ici parce que le bonus de bps est plus grand que 1000 au départ, mais pas les autres.
 
         buyStonePickaxe.setTranslateY(0);
         buyIronPickaxe.setTranslateY(25);
@@ -147,13 +170,13 @@ public class MineClicker extends Application {
         Label goldQt = new Label("Cost : " + ParseNumber(upgrades[2].getCost()) + ". You Have " + ParseNumber(upgrades[2].getQt()) + ".");
         Label diamondQt = new Label("Cost : " + ParseNumber(upgrades[3].getCost()) + ". You Have " + ParseNumber(upgrades[3].getQt()) + ".");
 
-        stoneQt.setTranslateX(200);
+        stoneQt.setTranslateX(230);
         stoneQt.setTranslateY(5);
-        ironQt.setTranslateX(200);
+        ironQt.setTranslateX(230);
         ironQt.setTranslateY(30);
-        goldQt.setTranslateX(200);
+        goldQt.setTranslateX(230);
         goldQt.setTranslateY(55);
-        diamondQt.setTranslateX(200);
+        diamondQt.setTranslateX(230);
         diamondQt.setTranslateY(80);
 
 
@@ -171,11 +194,15 @@ public class MineClicker extends Application {
 
     void SetupEnchantWindow () {
 
-        Button enchantPick = new Button("Enchant!");
-        Label enchantCost = new Label("You can enchant your pickaxe to increase the power of your clicks. Your current power is " + enchant.getStrength() + "Cost : " + enchant.getCost() + ".");
+        //ramasser l'image pour le bouton d'enchant
+        ImageView enchantPic = new ImageView();
+        try{enchantPic = new ImageView(new Image(new FileInputStream("Images/enchant.png")));} catch (FileNotFoundException ex) { System.out.println("ENCHANT PIC NOT FOUND!"); }
 
-        enchantPick.setTranslateX(50);
-        enchantPick.setTranslateY(200);
+        Button enchantPick = new Button("Enchant! (Current click power : " + ParseNumber(clickStrength) + ")",enchantPic);
+        Label enchantCost = new Label("You can enchant your pickaxe to increase the power of your clicks.\nYour pickaxe is efficiency " + ParseNumber(enchant.getQt()+1) + ". Cost : " + ParseNumber(enchant.getCost()) + ".");
+
+        enchantPick.setTranslateX(10);
+        enchantPick.setTranslateY(50);
         //TODO FINIR LES TRANSLATE ET TERMINER LA NOUVELLE FENETRE!!!!
 
 
@@ -194,28 +221,27 @@ public class MineClicker extends Application {
             blocksMined -= enchant.getCost();
             enchant.setQt(enchant.getQt()+ 1);
 
-            bps += enchant.getStrength();
+            clickStrength += enchant.getStrength();
 
-            //bonus quand on obtient une dizaine de chaque upgrade, la force des upgrades double
-            if (enchant.getQt()%10 == 0) {
+            //bonus quand on obtient une dizaine de chaque upgrade, la force des upgrades double (+1 car on commence déjà à 1 de clickstrength)
+            if ((enchant.getQt()+1)%10 == 0) {
 
                 enchant.setStrength(enchant.getStrength() * 2);
 
             }
 
 
-            enchantLabel.setText("enchantLabel");
-            enchantButton.setText("enchantbutton");
-            updateBps();
+            enchantLabel.setText("You can enchant your pickaxe to increase the power of your clicks.\nYour pickaxe is efficiency " + ParseNumber(enchant.getQt()+1) + ". Cost : " + ParseNumber(enchant.getCost()) + ".");
+            enchantButton.setText("Enchant! (Current click power : " + ParseNumber(clickStrength) + ")");
 
         }
 
     }
 
-    //méthode pour aller chercher les images dans le dossier
+    //méthode pour aller chercher les images des pioches dans le dossier
     void InitGraphics () {
 
-        for (int i = 0; i < upgrades.length; i++){
+        for (int i = 0; i < images.length; i++){
 
             try {
                 images[i] = new ImageView(new Image(new FileInputStream("Images/" + i + ".png")));
@@ -267,16 +293,11 @@ public class MineClicker extends Application {
 
     String ParseNumber (double value) {
 
-        int valueInt = (int)value;
-        DecimalFormat df = new DecimalFormat("#,###");
+            //méthode qui met des espaces après 3 chiffres dans un nombre(par exemple 1400 devient 1 400).
+            int valueInt = (int)value;
+            DecimalFormat df = new DecimalFormat("#,###");
 
-        return df.format(valueInt);
-
-    }
-
-    double getBpsAmount () {
-
-        return (bps/100.0);
+            return df.format(valueInt);
 
     }
 

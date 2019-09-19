@@ -40,10 +40,6 @@ public class Upgrade {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public int getStrength() {
         return strength;
     }
