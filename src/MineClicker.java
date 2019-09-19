@@ -30,7 +30,7 @@ public class MineClicker extends Application {
     public static Scene mainScene;
     public static Scene upgradeScene;
     public static Scene enchantScene;
-    static double blocksMined = 10000000;
+    static double blocksMined;
     static int bps;
     static Label bpsLabel; // je dois metttre ce label la ici parce que j'ai besoin de l'accéder en dehors de la méthode SetupMainWindow.
     static ImageView[] images = new ImageView[5];
@@ -73,7 +73,7 @@ public class MineClicker extends Application {
 
 
 
-        //stage avec les upgrades
+        //stage avec les upgrades (resizable car des fois quand on a trop d'upgrades le texte sort de la fenêtre.)
         Stage upgradeStage = new Stage();
         upgradeStage.setTitle("Miner");
         upgradeStage.setResizable(true);
@@ -203,8 +203,6 @@ public class MineClicker extends Application {
 
         enchantPick.setTranslateX(10);
         enchantPick.setTranslateY(50);
-        //TODO FINIR LES TRANSLATE ET TERMINER LA NOUVELLE FENETRE!!!!
-
 
         enchantPick.setOnAction((event) -> upgradeClick(enchantCost, enchantPick));
 
