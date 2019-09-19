@@ -19,6 +19,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+
+//TEST PUISHHHHH!!!
 public class MineClicker extends Application {
 
     public static Scene mainScene;
